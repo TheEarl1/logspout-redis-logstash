@@ -192,11 +192,14 @@ func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) i
     name := m.Container.Name[1:]
     timestamp := m.Time.Format(time.RFC3339Nano)
 
+    if os.Getenv("HOSTNAME") != "" {
+        fmt.Println(err.Error())
+    }
     if use_v0 {
         return LogstashMessageV0{
             Message:    m.Data,
             Timestamp:  timestamp,
-            Sourcehost: m.Container.Config.Hostname,
+            Sourcehost: getopt("SYSLOG_HOSTNAME", m.Container.Config.Hostname),
             Fields:     LogstashFields{
                 Docker: DockerFields{
                     CID:        cid,
@@ -213,7 +216,7 @@ func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) i
     return LogstashMessageV1{
         Message:    m.Data,
         Timestamp:  timestamp,
-        Sourcehost: m.Container.Config.Hostname,
+        Sourcehost: getopt("SYSLOG_HOSTNAME", m.Container.Config.Hostname),
         Fields:     DockerFields{
             CID:        cid,
             Name:       name,
