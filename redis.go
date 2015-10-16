@@ -41,16 +41,18 @@ type LogstashFields struct {
 
 type LogstashMessageV0 struct {
     Timestamp   string            `json:"@timestamp"`
-    Sourcehost  string            `json:"@source_host"`
-    Message     string            `json:"@message"`
-    Fields      LogstashFields    `json:"@fields"`
-}
+    Sourcehost  string            `json:"source_host"`
+    Message     string            `json:"message"`
+    Fields      LogstashFields    `json:"fields"`
+    Tags        []string          `json:"tags"`
+ }
 
 type LogstashMessageV1 struct {
     Timestamp   string            `json:"@timestamp"`
     Sourcehost  string            `json:"host"`
     Message     string            `json:"message"`
     Fields      DockerFields      `json:"docker"`
+    Tags        []string          `json:"tags"`
 }
 
 
@@ -188,15 +190,22 @@ func splitImage(image string) (string, string) {
 
 func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) interface{} {
     image_name, image_tag := splitImage(m.Container.Config.Image)
-    cid := m.Container.ID[0:12]
+    cid  := m.Container.ID[0:12]
     name := m.Container.Name[1:]
     timestamp := m.Time.Format(time.RFC3339Nano)
+    tags_str  := getopt("LOGSTASH_TAGS", "" )
+    tags := []string{""} 
+
+    if tags_str != "" {
+        tags = strings.Split(tags_str, ",")
+    }
 
     if use_v0 {
         return LogstashMessageV0{
             Message:    m.Data,
             Timestamp:  timestamp,
             Sourcehost: getopt("SYSLOG_HOSTNAME", m.Container.Config.Hostname),
+            Tags:       tags,
             Fields:     LogstashFields{
                 Docker: DockerFields{
                     CID:        cid,
@@ -214,6 +223,7 @@ func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) i
         Message:    m.Data,
         Timestamp:  timestamp,
         Sourcehost: getopt("SYSLOG_HOSTNAME", m.Container.Config.Hostname),
+        Tags:       tags,
         Fields:     DockerFields{
             CID:        cid,
             Name:       name,
