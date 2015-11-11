@@ -44,6 +44,7 @@ type LogstashMessageV0 struct {
     Sourcehost  string            `json:"source_host"`
     Message     string            `json:"message"`
     Fields      LogstashFields    `json:"fields"`
+    Environment string            `json:"environment"`
     Tags        []string          `json:"tags"`
  }
 
@@ -52,6 +53,7 @@ type LogstashMessageV1 struct {
     Sourcehost  string            `json:"host"`
     Message     string            `json:"message"`
     Fields      DockerFields      `json:"docker"`
+    Environment string            `json:"environment"`
     Tags        []string          `json:"tags"`
 }
 
@@ -193,9 +195,9 @@ func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) i
     cid  := m.Container.ID[0:12]
     name := m.Container.Name[1:]
     timestamp := m.Time.Format(time.RFC3339Nano)
+    environment := getopt("LOGSTASH_ENVIRONMENT", "" )
     tags_str  := getopt("LOGSTASH_TAGS", "" )
     tags := []string{""} 
-
     if tags_str != "" {
         tags = strings.Split(tags_str, ",")
     }
@@ -206,6 +208,7 @@ func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) i
             Timestamp:  timestamp,
             Sourcehost: getopt("SYSLOG_HOSTNAME", m.Container.Config.Hostname),
             Tags:       tags,
+            Environment: environment,
             Fields:     LogstashFields{
                 Docker: DockerFields{
                     CID:        cid,
@@ -224,6 +227,7 @@ func createLogstashMessage(m *router.Message, docker_host string, use_v0 bool) i
         Timestamp:  timestamp,
         Sourcehost: getopt("SYSLOG_HOSTNAME", m.Container.Config.Hostname),
         Tags:       tags,
+        Environment: environment,
         Fields:     DockerFields{
             CID:        cid,
             Name:       name,
